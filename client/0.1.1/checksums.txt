@@ -1,0 +1,6 @@
+020e05bf18e38110fad9b4aea69fd6cfb519917539444b8521d8485469921fb7  warp-ztna_0.1.1_darwin_amd64.tar.gz
+8cd4684f7321c367815fd16e60b0fad5453e1ebe79df6f02db4b94dbe416ba47  warp-ztna_0.1.1_darwin_arm64.tar.gz
+ed4f74dc88abe19b254f8f7d03676ff84920050ff865e4b1ea1418d494d2b77a  warp-ztna_0.1.1_linux_amd64.tar.gz
+b7f70725c18a409f028f2625b9d540f5282a225e7fff6a7431f51ec78dd68a84  warp-ztna_0.1.1_linux_arm64.tar.gz
+9e414c0e078ad8b874ecc579a834c96dd0d5797ea3554fcfedf06ef5145123d9  warp-ztna_0.1.1_windows_amd64.tar.gz
+7772a252ee46c01715076e0d179ae7898f55f14414eeb9fa0a76c97714614acf  warp-ztna_0.1.1_windows_arm64.tar.gz

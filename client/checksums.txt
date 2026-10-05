@@ -1,0 +1,13 @@
+ae8c4e564b1f8c916d290c6d3cf9c416a601e06fefcd905e2669bb0fe12bb2e0  client/macos/amd64/WarpZTNA-App-0.1.1-amd64.dmg
+bae7658b0de898039ff0f9f51216133e6649a15f28239b6f61c5307ab18f69b0  client/macos/arm64/WarpZTNA-App-0.1.1-arm64.dmg
+19605d7972cecfef366889b6f02a9e56998b00fe7791f59632743b4f840ea4e8  client/macos/amd64/WarpZTNA-Service-0.1.1-amd64.pkg
+42c70c21d88c3eac6435f03754af81ad7779aec7208f3755e3627f2980976bb4  client/macos/arm64/WarpZTNA-Service-0.1.1-arm64.pkg
+d0e3fa72099ee7bfd775b52547ff8ab857ddaf29c27c423feb4e4c04efda4522  client/windows/amd64/WarpZTNA-App-0.1.1-amd64.msi
+0ea7a2a139ca0ceee47d8f5715f380331f5f7077630cbe66ab14d938037f1b8f  client/linux/amd64/WarpZTNA-App-0.1.1-amd64.deb
+67b457277287abe9b37b27707ac950c63bd785e2966a3b85df71142e79bdefff  client/linux/amd64/WarpZTNA-App-0.1.1-amd64.rpm
+020e05bf18e38110fad9b4aea69fd6cfb519917539444b8521d8485469921fb7  client/0.1.1/warp-ztna_0.1.1_darwin_amd64.tar.gz
+8cd4684f7321c367815fd16e60b0fad5453e1ebe79df6f02db4b94dbe416ba47  client/0.1.1/warp-ztna_0.1.1_darwin_arm64.tar.gz
+ed4f74dc88abe19b254f8f7d03676ff84920050ff865e4b1ea1418d494d2b77a  client/0.1.1/warp-ztna_0.1.1_linux_amd64.tar.gz
+b7f70725c18a409f028f2625b9d540f5282a225e7fff6a7431f51ec78dd68a84  client/0.1.1/warp-ztna_0.1.1_linux_arm64.tar.gz
+9e414c0e078ad8b874ecc579a834c96dd0d5797ea3554fcfedf06ef5145123d9  client/0.1.1/warp-ztna_0.1.1_windows_amd64.tar.gz
+7772a252ee46c01715076e0d179ae7898f55f14414eeb9fa0a76c97714614acf  client/0.1.1/warp-ztna_0.1.1_windows_arm64.tar.gz
