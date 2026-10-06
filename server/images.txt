@@ -1,5 +1,5 @@
-ghcr.io/dayu-sec/warp-ztna-admin:0.1.0@sha256:2c5b9a266318c129c6472e1b117adc87a008a0a48f99bcc828a4965e36819d68
-ghcr.io/dayu-sec/warp-ztna-api:0.1.0@sha256:f0eb86448087ad32455f709f9e3b1fe74c026a9b288aec0b379f185a79c29bff
-ghcr.io/dayu-sec/warp-ztna-orch:0.1.0@sha256:0ce7697c1471eab77eb7869946352e6035843b9c714b6741fe5e0a6b4a70c224
-ghcr.io/dayu-sec/warp-ztna-portal:0.1.0@sha256:846800db198578dacf96733282c97453ab6855c0e9d0e6617ebaad011b286a4e
-ghcr.io/dayu-sec/warp-ztna-ssh-ca:0.1.0@sha256:496e3be2a77480295dffa31bcaf084ed7054593e3815fbbd09b64f29f65af360
+ghcr.io/dayu-sec/warp-ztna-admin:0.1.0@sha256:2e87bb77aaea58217fc58036f5f2883a5b7db6e19ac5f229d3a37cec0d3b17bf
+ghcr.io/dayu-sec/warp-ztna-api:0.1.0@sha256:a494f0a9a4c9ffef8de5573ef62fd9c13f207a478ccae912ab3735ca65bdf8a1
+ghcr.io/dayu-sec/warp-ztna-orch:0.1.0@sha256:9cd2464194d7b1ed35f1717dbf7e995facc10de3114c4f67eac4339720720a9d
+ghcr.io/dayu-sec/warp-ztna-portal:0.1.0@sha256:a4f971d188799ae224ac181cb850cc94cbf882dc6459f82a61807f8fb438b47a
+ghcr.io/dayu-sec/warp-ztna-ssh-ca:0.1.0@sha256:cae8764ecf6f5983763e1e73d9a4ea06604acbd23d0cd45efde0c9b7aefbdfab
