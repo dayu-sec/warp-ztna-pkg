@@ -1,0 +1,142 @@
+services:
+  migrate:
+    image: ghcr.io/dayu-sec/warp-ztna-api:0.1.0
+    command: ["migrate"]
+    environment:
+      WARP_DATABASE_URL: ${WARP_DATABASE_URL:?WARP_DATABASE_URL is required}
+    restart: "no"
+
+  api:
+    image: ghcr.io/dayu-sec/warp-ztna-api:0.1.0
+    command: ["serve"]
+    environment:
+      WARP_API_BIND_ADDR: 0.0.0.0:8080
+      WARP_DATABASE_URL: ${WARP_DATABASE_URL:?WARP_DATABASE_URL is required}
+      WARP_OIDC_ISSUER: ${WARP_OIDC_ISSUER:?WARP_OIDC_ISSUER is required}
+      WARP_OIDC_AUDIENCE: ${WARP_OIDC_AUDIENCE:?WARP_OIDC_AUDIENCE is required}
+      WARP_ALLOWED_ORIGINS: ${WARP_ALLOWED_ORIGINS:?WARP_ALLOWED_ORIGINS is required}
+      WARP_LOCAL_SESSION_SECURE: ${WARP_LOCAL_SESSION_SECURE:-true}
+      WARP_LOCAL_SESSION_TTL_HOURS: ${WARP_LOCAL_SESSION_TTL_HOURS:-12}
+      WARP_ORCH_BASE_URL: http://orch:8080
+      WARP_AUTHZ_REQUEST_TIMEOUT_SECONDS: ${WARP_AUTHZ_REQUEST_TIMEOUT_SECONDS:-120}
+      WARP_CLIENT_PKG_BASE_URL: ${WARP_CLIENT_PKG_BASE_URL:-https://dayu-sec.github.io/warp-ztna-pkg/client}
+      WARP_SSH_CA_BASE_URL: ${WARP_SSH_CA_BASE_URL:-http://ssh-ca:8080}
+      WARP_SSH_CA_REQUEST_TIMEOUT_SECONDS: ${WARP_SSH_CA_REQUEST_TIMEOUT_SECONDS:-30}
+      WARP_NETBIRD_MANAGED_PREFIX: ${WARP_NETBIRD_MANAGED_PREFIX:-warp-ztna}
+      WARP_POLICY_TEMPLATES_JSON: ${WARP_POLICY_TEMPLATES_JSON:-[]}
+      WARP_LOG_FORMAT: ${WARP_LOG_FORMAT:-full}
+      RUST_LOG: ${RUST_LOG:-info}
+      WARP_SHUTDOWN_GRACE_PERIOD_SECONDS: ${WARP_SHUTDOWN_GRACE_PERIOD_SECONDS:-25}
+    ports:
+      - "${WARP_API_PORT:-8080}:8080"
+    stop_signal: SIGTERM
+    stop_grace_period: ${WARP_CONTAINER_STOP_GRACE_PERIOD_SECONDS:-30}s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  orch:
+    image: ghcr.io/dayu-sec/warp-ztna-orch:0.1.0
+    command: ["serve"]
+    environment:
+      WARP_ORCH_BIND_ADDR: 0.0.0.0:8080
+      WARP_DATABASE_URL: ${WARP_DATABASE_URL:?WARP_DATABASE_URL is required}
+      WARP_NETBIRD_BASE_URL: ${WARP_NETBIRD_BASE_URL:?WARP_NETBIRD_BASE_URL is required}
+      WARP_NETBIRD_API_TOKEN: ${WARP_NETBIRD_API_TOKEN:?WARP_NETBIRD_API_TOKEN is required}
+      WARP_NETBIRD_MANAGED_PREFIX: ${WARP_NETBIRD_MANAGED_PREFIX:-warp-ztna}
+      WARP_KEYCLOAK_BASE_URL: ${WARP_KEYCLOAK_BASE_URL:-}
+      WARP_KEYCLOAK_REALM: ${WARP_KEYCLOAK_REALM:-warp-ztna}
+      WARP_KEYCLOAK_CLIENT_ID: ${WARP_KEYCLOAK_CLIENT_ID:-}
+      WARP_KEYCLOAK_CLIENT_SECRET: ${WARP_KEYCLOAK_CLIENT_SECRET:-}
+      WARP_IDENTITY_SYNC_INTERVAL_SECONDS: ${WARP_IDENTITY_SYNC_INTERVAL_SECONDS:-14400}
+      WARP_AUDIT_POLL_INTERVAL_SECONDS: ${WARP_AUDIT_POLL_INTERVAL_SECONDS:-900}
+      WARP_AUTHZ_APPLY_INTERVAL_SECONDS: ${WARP_AUTHZ_APPLY_INTERVAL_SECONDS:-120}
+      WARP_AUTHZ_RECONCILE_INTERVAL_SECONDS: ${WARP_AUTHZ_RECONCILE_INTERVAL_SECONDS:-900}
+      WARP_ASSET_SYNC_INTERVAL_SECONDS: ${WARP_ASSET_SYNC_INTERVAL_SECONDS:-43200}
+      WARP_AUDIT_RETENTION_DAYS: ${WARP_AUDIT_RETENTION_DAYS:-90}
+      WARP_ASSET_CENTER_BASE_URL: ${WARP_ASSET_CENTER_BASE_URL:-}
+      WARP_ASSET_CENTER_TOKEN: ${WARP_ASSET_CENTER_TOKEN:-}
+      WARP_ASSET_CENTER_SNAPSHOT_PATH: ${WARP_ASSET_CENTER_SNAPSHOT_PATH:-/api/v1/ztna/asset-graph/snapshot}
+      WARP_AUTHZ_AUTO_APPROVE_ENABLED: ${WARP_AUTHZ_AUTO_APPROVE_ENABLED:-true}
+      WARP_AUTHZ_AUTO_APPROVE_MAX_SECONDS: ${WARP_AUTHZ_AUTO_APPROVE_MAX_SECONDS:-604800}
+      WARP_IDENTITY_SOURCE_ENABLED: ${WARP_IDENTITY_SOURCE_ENABLED:-false}
+      WARP_IDENTITY_SOURCE_PROVIDER: ${WARP_IDENTITY_SOURCE_PROVIDER:-}
+      WARP_IDENTITY_SOURCE_GROUP_ROOT: ${WARP_IDENTITY_SOURCE_GROUP_ROOT:-}
+      WARP_IDENTITY_SOURCE_EMAIL_DOMAIN: ${WARP_IDENTITY_SOURCE_EMAIL_DOMAIN:-}
+      WARP_IDENTITY_SOURCE_DINGTALK_APP_KEY: ${WARP_IDENTITY_SOURCE_DINGTALK_APP_KEY:-}
+      WARP_IDENTITY_SOURCE_DINGTALK_APP_SECRET: ${WARP_IDENTITY_SOURCE_DINGTALK_APP_SECRET:-}
+      WARP_IDENTITY_SOURCE_DINGTALK_CORP_ID: ${WARP_IDENTITY_SOURCE_DINGTALK_CORP_ID:-}
+      WARP_IDENTITY_SOURCE_DINGTALK_DEPT_IDS: ${WARP_IDENTITY_SOURCE_DINGTALK_DEPT_IDS:-}
+      WARP_IDENTITY_SOURCE_DINGTALK_FETCH_USER_DETAIL: ${WARP_IDENTITY_SOURCE_DINGTALK_FETCH_USER_DETAIL:-false}
+      WARP_AUTO_APPROVE_INITIAL_ENABLED: ${WARP_AUTO_APPROVE_INITIAL_ENABLED:-false}
+      WARP_POLICY_POSTURE_CHECK_JSON: ${WARP_POLICY_POSTURE_CHECK_JSON:-}
+      WARP_SSH_CA_BASE_URL: ${WARP_SSH_CA_BASE_URL:-http://ssh-ca:8080}
+      WARP_SSH_CA_REQUEST_TIMEOUT_SECONDS: ${WARP_SSH_CA_REQUEST_TIMEOUT_SECONDS:-30}
+      WARP_SSH_HOST_CERT_TTL_SECONDS: ${WARP_SSH_HOST_CERT_TTL_SECONDS:-15552000}
+      WARP_SHUTDOWN_GRACE_PERIOD_SECONDS: ${WARP_SHUTDOWN_GRACE_PERIOD_SECONDS:-25}
+      WARP_LOG_FORMAT: ${WARP_LOG_FORMAT:-full}
+      RUST_LOG: ${RUST_LOG:-info}
+    expose:
+      - "8080"
+    stop_signal: SIGTERM
+    stop_grace_period: ${WARP_CONTAINER_STOP_GRACE_PERIOD_SECONDS:-30}s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  admin:
+    image: ghcr.io/dayu-sec/warp-ztna-admin:0.1.0
+    volumes:
+      - ./admin-config.js:/usr/share/nginx/html/config.js:ro
+    ports:
+      - "${WARP_ADMIN_PORT:-5173}:8080"
+    depends_on:
+      - api
+
+  portal:
+    image: ghcr.io/dayu-sec/warp-ztna-portal:0.1.0
+    volumes:
+      - ./portal-config.js:/usr/share/nginx/html/config.js:ro
+    ports:
+      - "${WARP_PORTAL_PORT:-5174}:8080"
+
+  ssh-ca:
+    image: ghcr.io/dayu-sec/warp-ztna-ssh-ca:0.1.0
+    command: ["serve"]
+    environment:
+      WARP_SSH_CA_BIND_ADDR: 0.0.0.0:8080
+      STEP_CA_URL: ${STEP_CA_URL:-https://step-ca:9000}
+      STEP_CA_ROOTS_FILE: /run/secrets/step_ca_roots
+      STEP_CA_PROVISIONER_NAME: ${STEP_CA_PROVISIONER_NAME:-warp-ztna-ssh-ca}
+      STEP_CA_PROVISIONER_JWK_FILE: /run/secrets/step_ca_provisioner_jwk
+      STEP_CA_PROVISIONER_JWK_PASSWORD_FILE: /run/secrets/step_ca_provisioner_jwk_password
+      STEP_CA_SSH_USER_CA_FILE: /run/secrets/step_ca_ssh_user_ca
+      STEP_CA_SSH_HOST_CA_FILE: /run/secrets/step_ca_ssh_host_ca
+      STEP_CA_REQUEST_TIMEOUT_SECONDS: ${STEP_CA_REQUEST_TIMEOUT_SECONDS:-30}
+      WARP_SHUTDOWN_GRACE_PERIOD_SECONDS: ${WARP_SHUTDOWN_GRACE_PERIOD_SECONDS:-25}
+      WARP_LOG_FORMAT: ${WARP_LOG_FORMAT:-full}
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - ${STEP_CA_SECRETS_DIR:-./step-ca-secrets}/step-ca-roots.pem:/run/secrets/step_ca_roots:ro
+      - ${STEP_CA_SECRETS_DIR:-./step-ca-secrets}/provisioner/provisioner.jwk:/run/secrets/step_ca_provisioner_jwk:ro
+      - ${STEP_CA_SECRETS_DIR:-./step-ca-secrets}/provisioner/password:/run/secrets/step_ca_provisioner_jwk_password:ro
+      - ${STEP_CA_SSH_USER_CA_FILE:-./step-ca-secrets/ssh_user_ca_key.pub}:/run/secrets/step_ca_ssh_user_ca:ro
+      - ${STEP_CA_SSH_HOST_CA_FILE:-./step-ca-secrets/ssh_host_ca_key.pub}:/run/secrets/step_ca_ssh_host_ca:ro
+    expose:
+      - "8080"
+    ports:
+      - "127.0.0.1:${WARP_SSH_CA_PORT:-8091}:8080"
+    stop_signal: SIGTERM
+    stop_grace_period: ${WARP_CONTAINER_STOP_GRACE_PERIOD_SECONDS:-30}s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - default
+      - step_ca_internal
+
+networks:
+  step_ca_internal:
+    external: true
+    name: ${STEP_CA_NETWORK:-step-ca_step_ca_internal}

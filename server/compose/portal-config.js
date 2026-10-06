@@ -1,0 +1,16 @@
+window.__WARP_PORTAL_CONFIG__ = {
+  apiUrl: "https://ztna.example.com",
+  oidcIssuer: "https://keycloak.example.com/realms/warp-ztna",
+  oidcClientId: "warp-ztna-portal",
+  oidcScope: "openid profile email",
+  desktopVersion: "0.1.0",
+  desktopWindowsUrl: "#",
+  desktopMacosUrl: "#",
+  desktopMacosArm64Url: "#",
+  desktopMacosAmd64Url: "#",
+  desktopLinuxUrl: "#",
+  desktopChecksumsUrl: "https://dayu-sec.github.io/warp-ztna-pkg/client/checksums.txt",
+  desktopReleaseNotesUrl: "https://github.com/dayu-sec/warp-ztna-pkg/releases",
+  clientPkgBaseUrl: "https://dayu-sec.github.io/warp-ztna-pkg/client",
+  adminConsoleUrl: "",
+};
