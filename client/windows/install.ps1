@@ -85,6 +85,20 @@ function Get-NetbirdVersion {
     }
 }
 
+function Get-RemoteFile {
+    param([string]$Uri, [string]$OutFile)
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            Invoke-WebRequest -Uri $Uri -OutFile $OutFile
+            return
+        } catch {
+            if ($attempt -eq 3) { Fail "下载失败（已重试 3 次）：$Uri —— $($_.Exception.Message)" }
+            Write-Note "下载中断，重试（$attempt/3）：$Uri"
+            Start-Sleep -Seconds 2
+        }
+    }
+}
+
 function Show-Plan {
     Write-Host "[dry-run] 架构 $Arch"
     Write-Host "[dry-run] 引擎归档 $ArchiveUrl"
@@ -105,9 +119,9 @@ function Install-Engine {
     New-Item -ItemType Directory -Path $work -Force | Out-Null
     try {
         $archive = Join-Path $work $Artifact
-        Invoke-WebRequest -Uri $ArchiveUrl -OutFile $archive
+        Get-RemoteFile -Uri $ArchiveUrl -OutFile $archive
         $checksums = Join-Path $work "checksums.txt"
-        Invoke-WebRequest -Uri $ChecksumsUrl -OutFile $checksums
+        Get-RemoteFile -Uri $ChecksumsUrl -OutFile $checksums
         $expectedLine = Get-Content $checksums | Where-Object { $_ -match "\s$([Regex]::Escape($Artifact))$" } | Select-Object -First 1
         if (-not $expectedLine) { Fail "checksums.txt 里找不到 $Artifact 的校验值" }
         $expectedHash = ($expectedLine -split "\s+")[0]
