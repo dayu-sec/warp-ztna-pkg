@@ -12,6 +12,9 @@
 | `server/images.txt` | 五个镜像的 `名称:版本@sha256:摘要` 清单 |
 | `server/checksums.txt` | 本子树文件的 sha256 汇总（含相对路径） |
 
+镜像当前为私有包：部署机先 `echo "<PAT>" | docker login ghcr.io -u <用户名> --password-stdin`
+（classic PAT，勾选 `read:packages`）。包转为公开后无需登录。
+
 Compose 起步（PostgreSQL、Keycloak、NetBird 与 step-ca 都是外部依赖，按接入条件准备）：
 
 1. `cd server/compose`，`cp env.example .env`，按 `env.example` 填写（含外部库的 `WARP_DATABASE_URL`）；
@@ -22,12 +25,13 @@ Compose 起步（PostgreSQL、Keycloak、NetBird 与 step-ca 都是外部依赖�
 Kubernetes 安装（先决：命名空间内已有 `api`、`orch`、`ssh-ca` 三个 Secret）：
 
 1. 校验产物：在仓根执行 `sha256sum -c server/checksums.txt`；
-2. `helm upgrade --install warp server/k8s/warp-ztna-<版本>.tgz`（可按需 `-f` 覆盖 values）。
+2. 私有包另建 imagePullSecret：`kubectl -n <命名空间> create secret docker-registry ghcr-pull --docker-server=ghcr.io --docker-username=<用户名> --docker-password=<PAT>`；
+3. `helm upgrade --install warp server/k8s/warp-ztna-<版本>.tgz`（私有包加 `--set 'image.pullSecrets[0].name=ghcr-pull'`，可按需 `-f` 覆盖 values）。
 
-镜像校验：`docker buildx imagetools inspect ghcr.io/dayu-sec/warp-ztna-api:<版本>` 的摘要应与 `server/images.txt` 一致。
+镜像校验：镜像为多架构 manifest（amd64/arm64），`docker buildx imagetools inspect ghcr.io/dayu-sec/warp-ztna-api:<版本>` 的摘要应与 `server/images.txt` 一致。
 
 升级与回滚：升级前先备份生产库，再替换产物并 `docker compose up -d` 或 `helm upgrade`（migrate 以 Job/一次性服务先行）；回滚用上一版本的同套产物。
 
-安全边界：`ssh-ca` 仅供 `api`/`orch` 内网调用（Compose 只绑 `127.0.0.1`，Kubernetes 只出 ClusterIP）；任何能到达它端口的东西都能让 CA 签出证书。
+安全边界：`ssh-ca` 仅供 `api`/`orch` 调用、`orch` 仅供 `api` 调用，两者都只在内网可达——Compose 里 ssh-ca 只绑 `127.0.0.1`、orch 不发布宿主端口；Kubernetes 里两者都只出 ClusterIP。两者对内部调用均不加凭据：任何能到达其端口的进程都能让 CA 签出证书（ssh-ca），或驱动 Mesh/策略操作与签发链（orch）。
 
 本仓内容由 CI 发布，请勿手工修改。
