@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-WARP_VERSION="0.1.1"
-NETBIRD_VERSION="0.76.3"
+WARP_VERSION="0.1.0"
+NETBIRD_VERSION="0.80.0"
 
 DEFAULT_BASE_URL="https://dayu-sec.github.io/warp-ztna-pkg/client"
 DEFAULT_SERVICE="warp-ztna"
@@ -56,7 +56,7 @@ usage() {
   --version <x.y.z>          要安装的包版本，默认脚本内嵌版本
   --base-url <URL>           产物基址，默认取环境变量 WARP_ZTNA_BASE_URL
   --service <NAME>           服务名，默认 warp-ztna
-  --force                    与不兼容版本的官方 NetBird 共存时不阻断
+  --force                    （兼容保留：遇官方 NetBird 现在一律先替换，无需开关）
   --uninstall                卸载服务与二进制；state 保留
   --purge                    与 --uninstall 同用：连 state、日志与配置一起删除
   --dry-run                  只打印将执行的命令，不改动系统
@@ -207,6 +207,9 @@ parse_args() {
     [0-9]*.[0-9]*.[0-9]*) ;;
     *) die "--version 需要形如 1.2.3 的版本号" ;;
   esac
+  if [ "$FORCE" -eq 1 ]; then
+    note "--force 兼容保留：遇官方 NetBird 现在一律先替换，无需开关。"
+  fi
 }
 
 detect_platform() {
@@ -238,31 +241,13 @@ service_installed() {
   fi
 }
 
-official_netbird_version() {
-  netbird version 2>/dev/null | head -n 1 | tr -d '[:space:]'
-}
-
 detect_existing() {
   if service_installed; then
     MODE="upgrade"
     return 0
   fi
   if command -v netbird >/dev/null 2>&1; then
-    EXISTING_NETBIRD_VERSION="$(official_netbird_version)"
-    case "$EXISTING_NETBIRD_VERSION" in
-      0.76.*)
-        MODE="reuse"
-        note "检测到官方 NetBird ${EXISTING_NETBIRD_VERSION}（兼容版本），复用既有安装：不替换二进制、不注册新服务。"
-        ;;
-      *)
-        if [ "$FORCE" -eq 1 ]; then
-          MODE="fresh"
-          warn "官方 NetBird $EXISTING_NETBIRD_VERSION 不在 0.76.x 支持范围内，--force 继续。"
-        else
-          die "官方 NetBird $EXISTING_NETBIRD_VERSION 不在支持范围（>=0.76.0,<0.77.0）；确认后加 --force 继续。"
-        fi
-        ;;
-    esac
+    MODE="replace"
     return 0
   fi
   MODE="fresh"
@@ -285,8 +270,8 @@ fetch_artifact() {
   CHECKSUMS_URL="${BASE_URL%/}/${VERSION}/checksums.txt"
   WORK_DIR="$(mktemp -d)"
   note "下载 $ARTIFACT_URL"
-  run curl -fsSL -o "$WORK_DIR/$ARTIFACT" "$ARTIFACT_URL"
-  run curl -fsSL -o "$WORK_DIR/checksums.txt" "$CHECKSUMS_URL"
+  run curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -C - -o "$WORK_DIR/$ARTIFACT" "$ARTIFACT_URL"
+  run curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -C - -o "$WORK_DIR/checksums.txt" "$CHECKSUMS_URL"
 }
 
 verify_checksum() {
@@ -327,6 +312,52 @@ service_stop() {
 
 service_uninstall() {
   run_root "$CLI" service uninstall --service "$SERVICE"
+}
+
+replace_official() {
+  NB_BIN="$(command -v netbird)"
+  note "替换官方 NetBird（${NB_BIN}）：停用并移除其服务、CLI 与 UI 应用；/var/lib/netbird 保留。"
+  run_root "$NB_BIN" service stop --service netbird || true
+  run_root "$NB_BIN" service uninstall --service netbird || true
+  if [ "$OS" = "linux" ]; then
+    replace_official_linux
+  else
+    replace_official_darwin
+  fi
+}
+
+replace_official_linux() {
+  for unit_dir in /etc/systemd/system /lib/systemd/system /usr/lib/systemd/system; do
+    if [ -e "$unit_dir/netbird.service" ]; then
+      run_root systemctl disable netbird || true
+      run_root rm -f "$unit_dir/netbird.service"
+    fi
+  done
+  run_root systemctl daemon-reload || true
+  if command -v dpkg-query >/dev/null 2>&1; then
+    for p in netbird-ui netbird; do
+      if dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q 'install ok installed'; then
+        run_root env DEBIAN_FRONTEND=noninteractive apt-get remove -y "$p" || true
+      fi
+    done
+  elif command -v rpm >/dev/null 2>&1; then
+    for p in netbird-ui netbird; do
+      if rpm -q "$p" >/dev/null 2>&1; then
+        run_root rpm -e "$p" || true
+      fi
+    done
+  fi
+  run_root rm -f "$NB_BIN" /usr/bin/netbird /usr/local/bin/netbird /usr/bin/netbird-ui
+  run_root rm -f /var/run/netbird.sock
+}
+
+replace_official_darwin() {
+  run_root launchctl bootout system/netbird 2>/dev/null || true
+  run_root rm -f /Library/LaunchDaemons/netbird.plist
+  run_root pkill -f "NetBird UI.app" || true
+  run_root rm -rf "/Applications/NetBird.app" "/Applications/NetBird UI.app"
+  run_root rm -f "$NB_BIN" /usr/local/bin/netbird /opt/homebrew/bin/netbird
+  run_root rm -f /var/run/netbird.sock
 }
 
 prepare_key_file() {
@@ -394,10 +425,6 @@ report_peer() {
 }
 
 uninstall() {
-  if [ "$MODE" = "reuse" ]; then
-    note "检测到的是官方 NetBird 安装（复用模式）：本脚本不卸载、也不接管它。"
-    return 0
-  fi
   if ! service_installed && [ "$DRY_RUN" -eq 0 ]; then
     note "未发现 $SERVICE 服务，无需卸载。"
     return 0
@@ -456,27 +483,26 @@ main() {
   fi
 
   case "$MODE" in
-    reuse)
-      CLI="$(command -v netbird)"
-      ;;
     upgrade)
       CLI="$BIN_PATH"
       note "检测到既有 $SERVICE 服务，按升级处理（state 保留）：停服 → 换二进制 → 重装服务 → 启动。"
       service_stop
+      ;;
+    replace)
+      CLI="$BIN_PATH"
+      replace_official
       ;;
     *)
       CLI="$BIN_PATH"
       ;;
   esac
 
-  if [ "$MODE" != "reuse" ]; then
-    need_cmd curl
-    ensure_dirs
-    fetch_artifact
-    verify_checksum
-    install_binary
-    service_install
-  fi
+  need_cmd curl
+  ensure_dirs
+  fetch_artifact
+  verify_checksum
+  install_binary
+  service_install
 
   enroll
 

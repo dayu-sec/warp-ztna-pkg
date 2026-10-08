@@ -14,8 +14,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$WarpVersion = "0.1.1"
-$NetbirdVersion = "0.76.3"
+$WarpVersion = "0.1.0"
+$NetbirdVersion = "0.80.0"
 $DefaultBaseUrl = "https://dayu-sec.github.io/warp-ztna-pkg/client"
 $ServiceName = "warp-ztna"
 $ProgramRoot = if ($env:ProgramFiles) { $env:ProgramFiles } else { "C:\Program Files" }
@@ -48,7 +48,7 @@ function Show-Usage {
   -ManagementUrl <URL>    Management 地址（默认取环境变量 WARP_ZTNA_MANAGEMENT_URL）
   -Version <x.y.z>        覆盖安装的包版本，默认脚本内嵌版本
   -BaseUrl <URL>          产物基址，默认 https://dayu-sec.github.io/warp-ztna-pkg/client
-  -Force                  与不兼容版本的官方 NetBird 共存时不阻断
+  -Force                  （兼容保留：遇官方 NetBird 现在一律先替换，无需开关）
   -Uninstall              卸载服务与二进制；state 保留
   -DryRun                 只打印计划，不下载不安装
   -Help                   显示本帮助
@@ -75,14 +75,57 @@ function Get-OfficialNetbird {
     return $null
 }
 
-function Get-NetbirdVersion {
-    param([string]$Binary)
-    try {
-        $line = (& $Binary version 2>$null | Select-Object -First 1)
-        return (($line | Out-String) -replace "\s", "")
-    } catch {
-        return ""
+function Get-RemoteFile {
+    param([string]$Uri, [string]$OutFile)
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            Invoke-WebRequest -Uri $Uri -OutFile $OutFile
+            return
+        } catch {
+            if ($attempt -eq 3) { Fail "下载失败（已重试 3 次）：$Uri —— $($_.Exception.Message)" }
+            Write-Note "下载中断，重试（$attempt/3）：$Uri"
+            Start-Sleep -Seconds 2
+        }
     }
+}
+
+function Get-NetBirdMsiProducts {
+    $roots = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+    )
+    foreach ($root in $roots) {
+        if (-not (Test-Path $root)) { continue }
+        foreach ($key in Get-ChildItem -Path $root -ErrorAction SilentlyContinue) {
+            $props = Get-ItemProperty -Path $key.PSPath -ErrorAction SilentlyContinue
+            if ($props -and $props.DisplayName -like "*NetBird*") { $props.PSChildName }
+        }
+    }
+}
+
+function Replace-Official {
+    param([string]$ExistingBinary)
+    Write-Note "替换官方 NetBird（${ExistingBinary}）：停用并移除其服务、命令与 UI 应用；state 目录保留。"
+    foreach ($svc in @(Get-Service -Name "*NetBird*" -ErrorAction SilentlyContinue)) {
+        Stop-Service -Name $svc.Name -Force -ErrorAction SilentlyContinue
+    }
+    if ($ExistingBinary -and (Test-Path $ExistingBinary)) {
+        & $ExistingBinary service uninstall
+    }
+    Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*netbird*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    $uninstaller = Join-Path $env:ProgramFiles "NetBird\netbird_uninstall.exe"
+    $products = @(Get-NetBirdMsiProducts)
+    if (Test-Path $uninstaller) {
+        $proc = Start-Process -FilePath $uninstaller -ArgumentList @("/S") -Wait -PassThru
+        if ($proc.ExitCode -ne 0) { Write-Warning "官方卸载器退出码 $($proc.ExitCode)" }
+    } elseif ($products.Count -gt 0) {
+        foreach ($product in $products) {
+            $proc = Start-Process -FilePath msiexec.exe -ArgumentList @("/x", $product, "/qn", "/norestart") -Wait -PassThru
+            if ($proc.ExitCode -ne 0) { Write-Warning "msiexec 退出码 $($proc.ExitCode)" }
+        }
+    }
+    $netbirdDir = Join-Path $env:ProgramFiles "NetBird"
+    if (Test-Path $netbirdDir) { Remove-Item -Path $netbirdDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
 function Show-Plan {
@@ -90,24 +133,20 @@ function Show-Plan {
     Write-Host "[dry-run] 引擎归档 $ArchiveUrl"
     Write-Host "[dry-run] 校验和 $ChecksumsUrl"
     Write-Host "[dry-run] 安装目录 $InstallDir；状态目录 $StateDir；日志 $LogFile"
+    Write-Host "[dry-run] （本机有官方 NetBird 时：先替换它——停用并移除其服务、命令与 UI 应用）"
     Write-Host "[dry-run] netbird.exe service install --service $ServiceName --service-env NB_STATE_DIR=$StateDir,NB_ENABLE_LOCAL_FORWARDING=true"
     Write-Host "[dry-run] netbird.exe up --setup-key-file <文件> --management-url <URL>（未提供凭据时打印两条命令）"
 }
 
 function Install-Engine {
-    if ($ReuseBinary) {
-        Write-Note "检测到官方 NetBird 安装（复用模式）：本脚本不接管它，入网沿用该二进制。"
-        $script:EngineBinary = $ReuseBinary
-        return
-    }
     Write-Note "下载引擎归档：$ArchiveUrl"
     $work = Join-Path ([IO.Path]::GetTempPath()) ("warp-ztna-" + [Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $work -Force | Out-Null
     try {
         $archive = Join-Path $work $Artifact
-        Invoke-WebRequest -Uri $ArchiveUrl -OutFile $archive
+        Get-RemoteFile -Uri $ArchiveUrl -OutFile $archive
         $checksums = Join-Path $work "checksums.txt"
-        Invoke-WebRequest -Uri $ChecksumsUrl -OutFile $checksums
+        Get-RemoteFile -Uri $ChecksumsUrl -OutFile $checksums
         $expectedLine = Get-Content $checksums | Where-Object { $_ -match "\s$([Regex]::Escape($Artifact))$" } | Select-Object -First 1
         if (-not $expectedLine) { Fail "checksums.txt 里找不到 $Artifact 的校验值" }
         $expectedHash = ($expectedLine -split "\s+")[0]
@@ -195,7 +234,6 @@ $Artifact = "warp-ztna_${Version}_windows_${Arch}.tar.gz"
 $ArchiveUrl = "$Base/$Version/$Artifact"
 $ChecksumsUrl = "$Base/$Version/checksums.txt"
 $EngineBinary = "$InstallDir\netbird.exe"
-$ReuseBinary = $null
 
 if ($DryRun) {
     Show-Plan
@@ -218,12 +256,7 @@ $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if (-not $service) {
     $existing = Get-OfficialNetbird
     if ($existing) {
-        $existingVersion = Get-NetbirdVersion $existing
-        if ($existingVersion -like "0.76.*" -and -not $Force) {
-            $ReuseBinary = $existing
-        } elseif (-not $Force) {
-            Fail "本机已安装官方 NetBird $existingVersion，不在支持范围（>=0.76.0,<0.77.0）。确认后加 -Force 继续。"
-        }
+        Replace-Official -ExistingBinary $existing
     }
 }
 

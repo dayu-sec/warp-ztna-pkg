@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-WARP_VERSION="0.1.1"
+WARP_VERSION="0.1.0"
 BASE_URL="https://dayu-sec.github.io/warp-ztna-pkg/client"
 VERSION="$WARP_VERSION"
 DRY_RUN=0
@@ -12,6 +12,7 @@ usage() {
 
 在 Linux 机器上一条命令完成客户端安装：按本机架构与包管理器取 deb / rpm 并安装。
 包内自带引擎与桌面应用，安装时由包内脚本注册并启动 warp-ztna 服务。
+本机已有官方 NetBird 时先替换它（停用并移除其服务、命令与 UI 包；state 保留），再安装。
 
 选项：
   --version <x.y.z>  覆盖安装的包版本，默认脚本内嵌版本
@@ -83,10 +84,40 @@ detect_manager() {
   fi
 }
 
+replace_official() {
+  NB_BIN="$(command -v netbird)"
+  note "检测到本机已安装官方 NetBird：先替换它（停用并移除其服务、CLI 与 UI；/var/lib/netbird 保留），再安装 Warp 客户端。"
+  "$NB_BIN" service stop --service netbird || true
+  "$NB_BIN" service uninstall --service netbird || true
+  for unit_dir in /etc/systemd/system /lib/systemd/system /usr/lib/systemd/system; do
+    if [ -e "$unit_dir/netbird.service" ]; then
+      systemctl disable netbird || true
+      rm -f "$unit_dir/netbird.service"
+    fi
+  done
+  systemctl daemon-reload || true
+  if command -v dpkg-query >/dev/null 2>&1; then
+    for p in netbird-ui netbird; do
+      if dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q 'install ok installed'; then
+        DEBIAN_FRONTEND=noninteractive apt-get remove -y "$p" || true
+      fi
+    done
+  elif command -v rpm >/dev/null 2>&1; then
+    for p in netbird-ui netbird; do
+      if rpm -q "$p" >/dev/null 2>&1; then
+        rpm -e "$p" || true
+      fi
+    done
+  fi
+  rm -f "$NB_BIN" /usr/bin/netbird /usr/local/bin/netbird /usr/bin/netbird-ui
+  rm -f /var/run/netbird.sock
+}
+
 print_plan() {
   printf '[dry-run] 架构 %s；安装包类型 %s\n' "$ARCH" "$PKG_KIND"
   printf '[dry-run] 安装包 %s\n' "$PKG_URL"
   printf '[dry-run] 安装包已自带引擎与桌面应用，无需另装引擎\n'
+  printf '[dry-run] 若本机已装官方 NetBird：先替换它（停用并移除其服务、CLI 与 UI；state 保留），再安装\n'
   if [ "$PKG_KIND" = "deb" ]; then
     printf '[dry-run] DEBIAN_FRONTEND=noninteractive apt-get install -y <临时目录>/%s（无 apt-get 时 dpkg -i）\n' "$PKG_NAME"
   else
@@ -97,7 +128,7 @@ print_plan() {
 
 install_package() {
   note "下载客户端安装包：$PKG_URL"
-  curl -fsSL -o "${WORK}/${PKG_NAME}" "$PKG_URL"
+  curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -C - -o "${WORK}/${PKG_NAME}" "$PKG_URL"
   note "安装 ${PKG_NAME}…"
   if [ "$PKG_KIND" = "deb" ]; then
     if command -v apt-get >/dev/null 2>&1; then
@@ -130,7 +161,7 @@ main() {
   [ "$(uname -s)" = "Linux" ] || die "本脚本只能在 Linux 上运行"
   [ "$(id -u)" -eq 0 ] || die "需要 root：请用 curl -fsSL <地址> | sudo sh 运行"
   if command -v netbird >/dev/null 2>&1; then
-    die "检测到本机已有 netbird：Warp 客户端安装包会注册自己的 warp-ztna 服务，两者共用 /var/run/netbird.sock，无法共存。请先卸载官方 NetBird 再装。"
+    replace_official
   fi
   need_cmd curl
   need_cmd mktemp
