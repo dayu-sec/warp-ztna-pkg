@@ -161,6 +161,7 @@ WARP_POLICY_POSTURE_CHECK_JSON='{"processes":[{"linux_path":"/usr/local/lib/warp
 | `desktopWindowsUrl` / `desktopMacosUrl` / `desktopMacosArm64Url` / `desktopMacosAmd64Url` / `desktopLinuxUrl` | portal | 下载地址的**显式覆盖**；`"#"`（或空）＝不使用覆盖、按 `clientPkgBaseUrl` + `desktopVersion` 派生（macOS 按架构、Windows/Linux 按 amd64）；只有 `desktopVersion` 为空时按钮才显示「下载地址未配置」 |
 | `desktopChecksumsUrl` / `clientPkgBaseUrl` | portal | 校验码清单与安装包基址；自建镜像站时一并改 |
 | `adminConsoleUrl` | portal | 门户里「进管理台」的链接；留空即隐藏该入口 |
+| `netbirdManagementUrl` | portal | 门户「路由节点」安装命令里的 `--management-url`（本部署的 NetBird Management 地址）；留空则命令不带该参数 |
 
 ### 2.6 启动、停止与优雅退出
 
@@ -215,6 +216,7 @@ migrate 是一次性 Job（`pre-install,pre-upgrade` hook），**首次安装前
 | `orch.keycloakBaseUrl` | `https://keycloak.example.com` | Keycloak 基址（不带 `/realms`） |
 | `sshCa.stepCaUrl` | `https://step-ca.step-ca.svc:9000` | step-ca 端点 |
 | `portal.desktop*Url`（5 项） | `"#"` | `"#"`＝不使用该覆盖值，回退到 clientPkgBaseUrl 派生路径 |
+| `portal.netbirdManagementUrl` | 空 | 门户「路由节点」安装命令里的 NetBird Management 地址；留空则命令不带该参数，节点脚本会报错指路 |
 
 ### 3.3 values 说明
 

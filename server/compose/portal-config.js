@@ -12,4 +12,5 @@ window.__WARP_PORTAL_CONFIG__ = {
   desktopChecksumsUrl: "https://dayu-sec.github.io/warp-ztna-pkg/client/checksums.txt",
   clientPkgBaseUrl: "https://dayu-sec.github.io/warp-ztna-pkg/client",
   adminConsoleUrl: "",
+  netbirdManagementUrl: "",
 };
