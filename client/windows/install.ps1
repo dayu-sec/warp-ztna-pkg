@@ -45,7 +45,7 @@ function Show-Usage {
 选项：
   -SetupKey <KEY>         机器入网凭据，一次性使用
   -SetupKeyFile <PATH>    从文件读取机器入网凭据，优先于 -SetupKey
-  -ManagementUrl <URL>    Management 地址（默认取环境变量 WARP_ZTNA_MANAGEMENT_URL）
+  -ManagementUrl <URL>    Management 地址；带 setup key 入网时必填（默认取环境变量 WARP_ZTNA_MANAGEMENT_URL）
   -Version <x.y.z>        覆盖安装的包版本，默认脚本内嵌版本
   -BaseUrl <URL>          产物基址，默认 https://dayu-sec.github.io/warp-ztna-pkg/client
   -Force                  （兼容保留：遇官方 NetBird 现在一律先替换，无需开关）
@@ -192,8 +192,7 @@ function Start-Enroll {
     $keyFile = [IO.Path]::GetTempFileName()
     try {
         Set-Content -Path $keyFile -Value $key -NoNewline
-        $arguments = @("up", "--setup-key-file", $keyFile)
-        if ($ManagementUrl) { $arguments += @("--management-url", $ManagementUrl) }
+        $arguments = @("up", "--setup-key-file", $keyFile, "--management-url", $ManagementUrl)
         & $EngineBinary @arguments
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "入网命令未成功（引擎与服务已装好）；请稍后重试 netbird up，或检查凭据。"
@@ -229,6 +228,9 @@ if (-not $BaseUrl) {
     $BaseUrl = if ($env:WARP_ZTNA_BASE_URL) { $env:WARP_ZTNA_BASE_URL } else { $DefaultBaseUrl }
 }
 if (-not $ManagementUrl -and $env:WARP_ZTNA_MANAGEMENT_URL) { $ManagementUrl = $env:WARP_ZTNA_MANAGEMENT_URL }
+if (($SetupKey -or $SetupKeyFile) -and -not $ManagementUrl) {
+    Fail "setup key 入网必须给 -ManagementUrl（或环境变量 WARP_ZTNA_MANAGEMENT_URL）：不给时引擎会打它内置的官方 SaaS 默认地址，Warp 签发的 key 在那边无效"
+}
 $Base = $BaseUrl.TrimEnd("/")
 $Artifact = "warp-ztna_${Version}_windows_${Arch}.tar.gz"
 $ArchiveUrl = "$Base/$Version/$Artifact"

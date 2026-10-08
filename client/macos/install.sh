@@ -50,7 +50,7 @@ usage() {
 选项：
   --setup-key <KEY>          机器入网凭据，一次性使用（脚本会转成 0600 临时文件）
   --setup-key-file <PATH>    从文件读取机器入网凭据，优先于 --setup-key
-  --management-url <URL>     NetBird Management 地址（默认取环境变量 WARP_ZTNA_MANAGEMENT_URL）
+  --management-url <URL>     NetBird Management 地址；setup-key 入网必填（默认取环境变量 WARP_ZTNA_MANAGEMENT_URL）
   --enroll <setup-key|sso|none>
                              装完后的入网方式，默认 none；只给 key 不给 --enroll 时按 setup-key 处理
   --version <x.y.z>          要安装的包版本，默认脚本内嵌版本
@@ -199,6 +199,9 @@ parse_args() {
   fi
   if [ "$ENROLL" = "setup-key" ] && [ -z "$SETUP_KEY" ] && [ -z "$SETUP_KEY_FILE" ]; then
     die "--enroll setup-key 需要 --setup-key 或 --setup-key-file"
+  fi
+  if [ "$ENROLL" = "setup-key" ] && [ -z "$MANAGEMENT_URL" ]; then
+    die "setup key 入网必须给 --management-url（或环境变量 WARP_ZTNA_MANAGEMENT_URL）：不给时引擎会打它内置的官方 SaaS 默认地址，Warp 签发的 key 在那边无效"
   fi
   if [ "$PURGE" -eq 1 ] && [ "$UNINSTALL" -eq 0 ]; then
     die "--purge 只能与 --uninstall 一起使用"
@@ -389,11 +392,7 @@ enroll() {
       ;;
     setup-key)
       prepare_key_file
-      set -- "$CLI" up --setup-key-file "$KEY_TMP"
-      if [ -n "$MANAGEMENT_URL" ]; then
-        set -- "$@" --management-url "$MANAGEMENT_URL"
-      fi
-      run "$@"
+      run "$CLI" up --setup-key-file "$KEY_TMP" --management-url "$MANAGEMENT_URL"
       ;;
     sso)
       note "即将打印设备码 URI 并阻塞等待浏览器授权；无 TTY 时请先准备好浏览器。"
@@ -485,8 +484,12 @@ main() {
   case "$MODE" in
     upgrade)
       CLI="$BIN_PATH"
-      note "检测到既有 $SERVICE 服务，按升级处理（state 保留）：停服 → 换二进制 → 重装服务 → 启动。"
-      service_stop
+      note "检测到既有 $SERVICE 服务，按升级处理（state 保留）：停用并注销 → 换二进制 → 重装服务 → 启动。"
+      service_stop || true
+      service_uninstall || true
+      if [ "$DRY_RUN" -eq 0 ] && service_installed; then
+        die "旧服务未注销干净（$SERVICE 仍在）：请先手工执行 $BIN_PATH service uninstall --service $SERVICE 再重试"
+      fi
       ;;
     replace)
       CLI="$BIN_PATH"
