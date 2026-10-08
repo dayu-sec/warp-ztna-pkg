@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-WARP_VERSION="0.1.0"
+WARP_VERSION="0.1.1"
 NETBIRD_VERSION="0.76.3"
 
 DEFAULT_BASE_URL="https://dayu-sec.github.io/warp-ztna-pkg/client"
@@ -285,8 +285,8 @@ fetch_artifact() {
   CHECKSUMS_URL="${BASE_URL%/}/${VERSION}/checksums.txt"
   WORK_DIR="$(mktemp -d)"
   note "下载 $ARTIFACT_URL"
-  run curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -C - -o "$WORK_DIR/$ARTIFACT" "$ARTIFACT_URL"
-  run curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -C - -o "$WORK_DIR/checksums.txt" "$CHECKSUMS_URL"
+  run curl -fsSL -o "$WORK_DIR/$ARTIFACT" "$ARTIFACT_URL"
+  run curl -fsSL -o "$WORK_DIR/checksums.txt" "$CHECKSUMS_URL"
 }
 
 verify_checksum() {

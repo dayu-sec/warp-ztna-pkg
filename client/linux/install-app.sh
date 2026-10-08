@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-WARP_VERSION="0.1.0"
+WARP_VERSION="0.1.1"
 BASE_URL="https://dayu-sec.github.io/warp-ztna-pkg/client"
 VERSION="$WARP_VERSION"
 DRY_RUN=0
@@ -97,7 +97,7 @@ print_plan() {
 
 install_package() {
   note "下载客户端安装包：$PKG_URL"
-  curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -C - -o "${WORK}/${PKG_NAME}" "$PKG_URL"
+  curl -fsSL -o "${WORK}/${PKG_NAME}" "$PKG_URL"
   note "安装 ${PKG_NAME}…"
   if [ "$PKG_KIND" = "deb" ]; then
     if command -v apt-get >/dev/null 2>&1; then

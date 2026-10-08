@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-WARP_VERSION="0.1.0"
+WARP_VERSION="0.1.1"
 BASE_URL="https://dayu-sec.github.io/warp-ztna-pkg/client"
 VERSION="$WARP_VERSION"
 DRY_RUN=0
@@ -87,14 +87,14 @@ install_engine() {
     return 0
   fi
   note "下载引擎包：$PKG_URL"
-  curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -C - -o "$WORK/$PKG_NAME" "$PKG_URL"
+  curl -fsSL -o "$WORK/$PKG_NAME" "$PKG_URL"
   note "安装引擎（Service 包）…"
   installer -pkg "$WORK/$PKG_NAME" -target /
 }
 
 install_app() {
   note "下载应用：$DMG_URL"
-  curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -C - -o "$WORK/$DMG_NAME" "$DMG_URL"
+  curl -fsSL -o "$WORK/$DMG_NAME" "$DMG_URL"
   mkdir -p "$MNT"
   hdiutil attach -nobrowse -readonly -mountpoint "$MNT" "$WORK/$DMG_NAME" >/dev/null
   if [ -d "/Applications/Warp ZTNA.app" ]; then
