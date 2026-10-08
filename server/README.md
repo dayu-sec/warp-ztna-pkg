@@ -158,7 +158,7 @@ WARP_POLICY_POSTURE_CHECK_JSON='{"processes":[{"linux_path":"/usr/local/lib/warp
 | `apiUrl` | 两个文件 | 浏览器访问 API 的基址（绝对地址，跨源直连 API）。**两个文件的源站都要出现在 `WARP_ALLOWED_ORIGINS` 里**；若在外围用 ingress 把 `/api` 路由到 api 服务，可留空走同源 |
 | `oidcIssuer` / `oidcClientId` / `oidcScope` | 两个文件 | 与 §1 的 Keycloak realm 和各自 public client 对应（默认分别是 `warp-ztna-admin`、`warp-ztna-portal`） |
 | `desktopVersion` | portal | 客户端版本，**打包时注入，不要手改** |
-| `desktopWindowsUrl` / `desktopMacosUrl` / `desktopMacosArm64Url` / `desktopMacosAmd64Url` / `desktopLinuxUrl` | portal | 直接下载链接；值为 `"#"`（或空）表示**不展示该下载入口**，此时门户回退到 `clientPkgBaseUrl` 派生路径 |
+| `desktopWindowsUrl` / `desktopMacosUrl` / `desktopMacosArm64Url` / `desktopMacosAmd64Url` / `desktopLinuxUrl` | portal | 下载地址的**显式覆盖**；`"#"`（或空）＝不使用覆盖、按 `clientPkgBaseUrl` + `desktopVersion` 派生（macOS 按架构、Windows/Linux 按 amd64）；只有 `desktopVersion` 为空时按钮才显示「下载地址未配置」 |
 | `desktopChecksumsUrl` / `clientPkgBaseUrl` | portal | 校验码清单与安装包基址；自建镜像站时一并改 |
 | `adminConsoleUrl` | portal | 门户里「进管理台」的链接；留空即隐藏该入口 |
 
@@ -214,7 +214,7 @@ migrate 是一次性 Job（`pre-install,pre-upgrade` hook），**首次安装前
 | `orch.netbirdBaseUrl` | `https://netbird.example.com` | NetBird Management API 基址 |
 | `orch.keycloakBaseUrl` | `https://keycloak.example.com` | Keycloak 基址（不带 `/realms`） |
 | `sshCa.stepCaUrl` | `https://step-ca.step-ca.svc:9000` | step-ca 端点 |
-| `portal.desktop*Url`（5 项） | `"#"` | `"#"` 即不展示该下载入口 |
+| `portal.desktop*Url`（5 项） | `"#"` | `"#"`＝不使用该覆盖值，回退到 clientPkgBaseUrl 派生路径 |
 
 ### 3.3 values 说明
 
