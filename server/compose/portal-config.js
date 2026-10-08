@@ -10,7 +10,6 @@ window.__WARP_PORTAL_CONFIG__ = {
   desktopMacosAmd64Url: "#",
   desktopLinuxUrl: "#",
   desktopChecksumsUrl: "https://dayu-sec.github.io/warp-ztna-pkg/client/checksums.txt",
-  desktopReleaseNotesUrl: "https://github.com/dayu-sec/warp-ztna-pkg/releases",
   clientPkgBaseUrl: "https://dayu-sec.github.io/warp-ztna-pkg/client",
   adminConsoleUrl: "",
 };

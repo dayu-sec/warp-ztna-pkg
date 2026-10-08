@@ -100,7 +100,7 @@ PostgreSQL、Keycloak、NetBird 与 step-ca 都不在本产物里，需要在部
 | `WARP_LOCAL_SESSION_SECURE` | 模板默认 `true` | 只接受字面 `true`/`false`。管理台走 HTTPS 时保持 `true`；**若管理台是 http 访问，必须改 `false`**，否则浏览器不回传会话 Cookie，表现为「登录不上」 |
 | `WARP_LOCAL_SESSION_TTL_HOURS` | `12` | 本地管理员会话时长（小时） |
 | `WARP_API_PORT` / `WARP_ADMIN_PORT` / `WARP_PORTAL_PORT` / `WARP_SSH_CA_PORT` | `8080` / `5173` / `5174` / `8091` | **宿主**端口（容器内一律 8080，不可改）。ssh-ca 的映射只绑 `127.0.0.1` |
-| `WARP_CLIENT_PKG_BASE_URL` | 官方产物站点 | 客户端安装包的下载基址，API 通过 `/api/v1/client-package` 把它发给门户；门户据此拼安装命令与校验和链接。只有自建镜像站点时才改——**改了门户上的安装命令会整体跟着变** |
+| `WARP_CLIENT_PKG_BASE_URL` | 官方产物站点 | 客户端安装包的下载基址，API 通过 `/api/v1/client-package` 把它发给门户；门户据此拼安装命令与校验码链接。只有自建镜像站点时才改——**改了门户上的安装命令会整体跟着变** |
 | `STEP_CA_SECRETS_DIR` | `./step-ca-secrets` | 存放五件 step-ca 文件的宿主目录（roots、provisioner.jwk、provisioner/password、ssh_user_ca_key.pub、ssh_host_ca_key.pub） |
 | `STEP_CA_NETWORK` | `step-ca_step_ca_internal` | step-ca 那套 compose 创建的外部网络名；**必须已存在**，否则 ssh-ca 起不来 |
 | `STEP_CA_URL` | `https://step-ca:9000` | step-ca 端点。用默认编排时不用改；换部署方式时改 |
@@ -159,7 +159,7 @@ WARP_POLICY_POSTURE_CHECK_JSON='{"processes":[{"linux_path":"/usr/local/lib/warp
 | `oidcIssuer` / `oidcClientId` / `oidcScope` | 两个文件 | 与 §1 的 Keycloak realm 和各自 public client 对应（默认分别是 `warp-ztna-admin`、`warp-ztna-portal`） |
 | `desktopVersion` | portal | 客户端版本，**打包时注入，不要手改** |
 | `desktopWindowsUrl` / `desktopMacosUrl` / `desktopMacosArm64Url` / `desktopMacosAmd64Url` / `desktopLinuxUrl` | portal | 直接下载链接；值为 `"#"`（或空）表示**不展示该下载入口**，此时门户回退到 `clientPkgBaseUrl` 派生路径 |
-| `desktopChecksumsUrl` / `desktopReleaseNotesUrl` / `clientPkgBaseUrl` | portal | 校验和、发布说明与安装包基址；自建镜像站时一并改 |
+| `desktopChecksumsUrl` / `clientPkgBaseUrl` | portal | 校验码清单与安装包基址；自建镜像站时一并改 |
 | `adminConsoleUrl` | portal | 门户里「进管理台」的链接；留空即隐藏该入口 |
 
 ### 2.6 启动、停止与优雅退出
