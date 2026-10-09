@@ -56,7 +56,7 @@ usage() {
   --version <x.y.z>          要安装的包版本，默认脚本内嵌版本
   --base-url <URL>           产物基址，默认取环境变量 WARP_ZTNA_BASE_URL
   --service <NAME>           服务名，默认 warp-ztna
-  --force                    （兼容保留：遇官方 NetBird 现在一律先替换，无需开关）
+  --force                    （兼容保留：遇同类组网客户端现在一律先替换，无需开关）
   --uninstall                卸载服务与二进制；state 保留
   --purge                    与 --uninstall 同用：连 state、日志与配置一起删除
   --dry-run                  只打印将执行的命令，不改动系统
@@ -201,7 +201,7 @@ parse_args() {
     die "--enroll setup-key 需要 --setup-key 或 --setup-key-file"
   fi
   if [ "$ENROLL" = "setup-key" ] && [ -z "$MANAGEMENT_URL" ]; then
-    die "setup key 入网必须给 --management-url（或环境变量 WARP_ZTNA_MANAGEMENT_URL）：不给时引擎会打它内置的官方 SaaS 默认地址，Warp 签发的 key 在那边无效"
+    die "setup key 入网必须给 --management-url（或环境变量 WARP_ZTNA_MANAGEMENT_URL）：不给时引擎会打它内置的公有云默认地址（不是本部署的管理服务器），本处签发的 key 在那边无效"
   fi
   if [ "$PURGE" -eq 1 ] && [ "$UNINSTALL" -eq 0 ]; then
     die "--purge 只能与 --uninstall 一起使用"
@@ -211,7 +211,7 @@ parse_args() {
     *) die "--version 需要形如 1.2.3 的版本号" ;;
   esac
   if [ "$FORCE" -eq 1 ]; then
-    note "--force 兼容保留：遇官方 NetBird 现在一律先替换，无需开关。"
+    note "--force 兼容保留：遇同类组网客户端现在一律先替换，无需开关。"
   fi
 }
 
@@ -319,7 +319,7 @@ service_uninstall() {
 
 replace_official() {
   NB_BIN="$(command -v netbird)"
-  note "替换官方 NetBird（${NB_BIN}）：停用并移除其服务、CLI 与 UI 应用；/var/lib/netbird 保留。"
+  note "替换同类组网客户端（${NB_BIN}）：停用并移除其服务、CLI 与桌面应用；其配置与状态目录保留。"
   run_root "$NB_BIN" service stop --service netbird || true
   run_root "$NB_BIN" service uninstall --service netbird || true
   if [ "$OS" = "linux" ]; then
@@ -386,7 +386,7 @@ prepare_key_file() {
 enroll() {
   case "$ENROLL" in
     none)
-      note "未请求入网。装完后的两条官方命令："
+      note "未请求入网。装完后的两条引擎命令："
       note "  机器入网：$CLI up --setup-key-file <文件> --management-url <URL>"
       note "  交互登录：$CLI login --no-browser"
       ;;
@@ -420,7 +420,7 @@ wait_connected() {
 report_peer() {
   note "$CLI status 摘要："
   "$CLI" status 2>/dev/null | grep -E 'Management|Signal|FQDN|NetBird IP' || true
-  note "以上 FQDN / NetBird IP 供在管理台「资产入网」里认人。"
+  note "以上 FQDN / 内部 IP 供在管理台「资产入网」里认人。"
 }
 
 uninstall() {
@@ -461,7 +461,7 @@ report_paths() {
   note "二进制：$BIN_PATH"
   note "state：$STATE_DIR"
   note "日志：$LOG_FILE"
-  note "引擎：NetBird ${NETBIRD_VERSION}（Warp 封装，未改源码）"
+  note "引擎版本：${NETBIRD_VERSION}"
 }
 
 main() {

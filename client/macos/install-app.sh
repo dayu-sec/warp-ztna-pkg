@@ -11,7 +11,7 @@ usage() {
 用法：install-app.sh [选项]
 
 在 macOS 机器上一条命令完成客户端安装：装引擎（Service 包）→ 装应用（Warp ZTNA.app）。
-本机已有官方 NetBird 时先替换它（服务、命令与桌面应用），再装引擎与应用。
+本机已有同类组网客户端时先替换它（服务、命令与桌面应用），再装引擎与应用。
 
 选项：
   --version <x.y.z>  覆盖安装的包版本，默认脚本内嵌版本
@@ -74,7 +74,7 @@ detect_arch() {
 print_plan() {
   printf '[dry-run] 架构 %s\n' "$ARCH"
   printf '[dry-run] 引擎包 %s\n' "$PKG_URL"
-  printf '[dry-run] 本机已有官方 NetBird 则先替换它（服务、命令与桌面应用），再 installer -pkg <临时目录>/%s -target /\n' "$PKG_NAME"
+  printf '[dry-run] 本机已有同类组网客户端则先替换它（服务、命令与桌面应用），再 installer -pkg <临时目录>/%s -target /\n' "$PKG_NAME"
   printf '[dry-run] 应用镜像 %s\n' "$DMG_URL"
   printf '[dry-run] hdiutil attach -nobrowse -readonly <临时目录>/%s -mountpoint <临时目录>/mnt\n' "$DMG_NAME"
   printf '[dry-run] ditto "<临时目录>/mnt/Warp ZTNA.app" "/Applications/Warp ZTNA.app"\n'
@@ -83,7 +83,7 @@ print_plan() {
 
 replace_official() {
   NB_BIN="$(command -v netbird)"
-  note "检测到官方 NetBird：先替换它（停用并移除其服务、命令与桌面应用；/var/lib/netbird 保留）。"
+  note "检测到同类组网客户端（${NB_BIN}）：先替换它（停用并移除其服务、命令与桌面应用；其配置与状态目录保留）。"
   "$NB_BIN" service stop --service netbird || true
   "$NB_BIN" service uninstall --service netbird || true
   launchctl bootout system/netbird 2>/dev/null || true

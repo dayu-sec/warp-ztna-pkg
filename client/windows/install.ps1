@@ -48,7 +48,7 @@ function Show-Usage {
   -ManagementUrl <URL>    Management 地址；带 setup key 入网时必填（默认取环境变量 WARP_ZTNA_MANAGEMENT_URL）
   -Version <x.y.z>        覆盖安装的包版本，默认脚本内嵌版本
   -BaseUrl <URL>          产物基址，默认 https://dayu-sec.github.io/warp-ztna-pkg/client
-  -Force                  （兼容保留：遇官方 NetBird 现在一律先替换，无需开关）
+  -Force                  （兼容保留：遇同类组网客户端现在一律先替换，无需开关）
   -Uninstall              卸载服务与二进制；state 保留
   -DryRun                 只打印计划，不下载不安装
   -Help                   显示本帮助
@@ -105,7 +105,7 @@ function Get-NetBirdMsiProducts {
 
 function Replace-Official {
     param([string]$ExistingBinary)
-    Write-Note "替换官方 NetBird（${ExistingBinary}）：停用并移除其服务、命令与 UI 应用；state 目录保留。"
+    Write-Note "替换同类组网客户端（${ExistingBinary}）：停用并移除其服务、命令与桌面应用；其 state 目录保留。"
     foreach ($svc in @(Get-Service -Name "*NetBird*" -ErrorAction SilentlyContinue)) {
         Stop-Service -Name $svc.Name -Force -ErrorAction SilentlyContinue
     }
@@ -133,7 +133,7 @@ function Show-Plan {
     Write-Host "[dry-run] 引擎归档 $ArchiveUrl"
     Write-Host "[dry-run] 校验和 $ChecksumsUrl"
     Write-Host "[dry-run] 安装目录 $InstallDir；状态目录 $StateDir；日志 $LogFile"
-    Write-Host "[dry-run] （本机有官方 NetBird 时：先替换它——停用并移除其服务、命令与 UI 应用）"
+    Write-Host "[dry-run] （本机有同类组网客户端时：先替换它——停用并移除其服务、命令与桌面应用）"
     Write-Host "[dry-run] netbird.exe service install --service $ServiceName --service-env NB_STATE_DIR=$StateDir,NB_ENABLE_LOCAL_FORWARDING=true"
     Write-Host "[dry-run] netbird.exe up --setup-key-file <文件> --management-url <URL>（未提供凭据时打印两条命令）"
 }
@@ -184,7 +184,7 @@ function Start-Enroll {
         $key = (Get-Content -Raw $SetupKeyFile).Trim()
     }
     if (-not $key) {
-        Write-Note "未请求入网。装完后的两条官方命令（原文，不新增命令面）："
+        Write-Note "未请求入网。装完后的两条引擎命令（原文，不新增命令面）："
         Write-Note "  机器入网：$EngineBinary up --setup-key-file <文件> --management-url <URL>"
         Write-Note "  交互登录：$EngineBinary login --no-browser"
         return
@@ -195,9 +195,9 @@ function Start-Enroll {
         $arguments = @("up", "--setup-key-file", $keyFile, "--management-url", $ManagementUrl)
         & $EngineBinary @arguments
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "入网命令未成功（引擎与服务已装好）；请稍后重试 netbird up，或检查凭据。"
+            Write-Warning "入网命令未成功（引擎与服务已装好）；请稍后重试 $EngineBinary up，或检查凭据。"
         } else {
-            Write-Note "已发起入网；用 netbird status 复查连接状态。"
+            Write-Note "已发起入网；用 $EngineBinary status 复查连接状态。"
         }
     } finally {
         Remove-Item -Path $keyFile -Force -ErrorAction SilentlyContinue
@@ -229,7 +229,7 @@ if (-not $BaseUrl) {
 }
 if (-not $ManagementUrl -and $env:WARP_ZTNA_MANAGEMENT_URL) { $ManagementUrl = $env:WARP_ZTNA_MANAGEMENT_URL }
 if (($SetupKey -or $SetupKeyFile) -and -not $ManagementUrl) {
-    Fail "setup key 入网必须给 -ManagementUrl（或环境变量 WARP_ZTNA_MANAGEMENT_URL）：不给时引擎会打它内置的官方 SaaS 默认地址，Warp 签发的 key 在那边无效"
+    Fail "setup key 入网必须给 -ManagementUrl（或环境变量 WARP_ZTNA_MANAGEMENT_URL）：不给时引擎会打它内置的公有云默认地址（不是本部署的管理服务器），本处签发的 key 在那边无效"
 }
 $Base = $BaseUrl.TrimEnd("/")
 $Artifact = "warp-ztna_${Version}_windows_${Arch}.tar.gz"
